@@ -4,8 +4,9 @@ import pickle
 import numpy as np
 import nltk
 from flask import Flask, render_template, request, jsonify
-from languagedetection import language_detection
+from langdetect import language_detection
 from googletrans import Translator
+from spellchecker import SpellChecker
 
 
 
@@ -56,15 +57,61 @@ def get_response(intents_list, intents_json):
             result = random.choice(i['responses'])
             break
     return result
-def chatbot_response(text):
-    ints = predict_class(text)
-    res = get_response(ints, intents)
-    return res
+
+def correct_spell (lang,text):
+    spell = SpellChecker(language=lang)
+    t=text.split()
+    ch=""
+    for w in t:
+        ch+=spell.correction(w)+" "
+    ch=ch[:len(ch)-1]
+    
+    return ch
+
+def chatbot_response(message):
+    lang = language_detection(message)
+
+    if lang != "en":
+        try:
+            message=correct_spell("fr",message)
+            translation = translator.translate(message, src=lang, dest="en")
+        except ValueError:
+            return("how can i Help you!")
+        else:
+            ints = predict_class(translation.text)
+            res = get_response(ints, intents)
+            translation = translator.translate(res, src="en", dest=lang)
+            return(translation.text)
+    else:
+        message=correct_spell("en",message)
+        ints = predict_class(message)
+        res = get_response(ints, intents)
+        return(res)
 
 print("chatbot is running")
 print("welcome")
-while True:
-    message = input("")
+# while True:
+#    message = input("")
+ #   if len(message) != 0:
+#      lang = language_detection(message)
+#        if lang != "en":
+#            try:
+#                translation = translator.translate(message, src=lang, dest="en")
+#            except ValueError:
+#                print("how can i Help you!")
+#            else:
+#                ints = predict_class(translation.text)
+#                res = get_response(ints, intents)
+#                translation = translator.translate(res, src="en", dest=lang)
+#                print(translation.text)
+#    elif len(message) == 0:
+#        ints = predict_class("hello")
+#        res = get_response(ints, intents)
+#        print(res)
 
-    print(chatbot_response(message))
+
+#    else:
+#        ints = predict_class(message)
+#        res = get_response(ints, intents)
+#        print(res)
 
